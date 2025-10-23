@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Java / Maven build outputs
+target/
+**/target/
+*.class
+
+# IDE
+.idea/
+.vscode/
+
+# node modules (si présent)
+node_modules/
