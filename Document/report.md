@@ -14,7 +14,10 @@ Our postgres container contains data and if stop the container, all the data wil
 
 A multistage build can be usefull because it can help to write a readable Dockerfile but howerver the main purpose of this build is to simplified the file and to leave behind the JDK and Maven to just let the JRE in the final image.
 
+2-1 What are testcontainers?
+Testcontainers is a library that provides an interface to run and write your integration test.
 
+2-2 For what purpose do we need to use secured variables ?
 
 
 

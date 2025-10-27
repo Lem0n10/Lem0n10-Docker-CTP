@@ -12,3 +12,4 @@ target/
 
 # node modules (si présent)
 node_modules/
+.DS_Store
