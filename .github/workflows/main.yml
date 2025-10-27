@@ -26,8 +26,7 @@ jobs:
         run: mvn -f TP02/BackendAPI/pom.xml clean verify
       
       - name: SonarCloud
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Lem0n10_Lem0n10-Docker-CTP -Dsonar.organization=<Lem0n10> -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}  --file ./simple-api/pom.xml
-
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Lem0n10_Lem0n10-Docker-CTP -Dsonar.organization=Lem0n10 -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}  --file ./BackendAPI/pom.xml
   # define job to build and publish docker image
   build-and-push-docker-image:
     needs: test-backend
