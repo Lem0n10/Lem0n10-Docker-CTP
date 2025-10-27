@@ -70,5 +70,5 @@ jobs:
           # Note: tags has to be all lower-case
           tags:  ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-httpd:latest
 
-          # build on feature branches, push only on main branch
+          # build on feature branches, push only on main branch   
           push: ${{ github.ref == 'refs/heads/main' }}
