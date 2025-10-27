@@ -1,4 +1,5 @@
 package fr.takima.training.sampleapplication.IT;
+
 import fr.takima.training.simpleapi.SimpleApiApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
