@@ -23,6 +23,4 @@ jobs:
 
      #finally build your app with the latest command
       - name: Build and test with Maven
-        run: | 
-        cd TP02/BackendAPI
-        mvn clean install 
+        run: mvn -f TP02/BackendAPI/pom.xml clean verify
