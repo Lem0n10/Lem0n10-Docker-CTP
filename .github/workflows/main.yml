@@ -2,31 +2,32 @@ name: CI devops 2025
 on:
   #to begin you want to launch this job in main and develop
   push:
-    branches: 
-      - main
-      - develop
+    branches:
+    - main
+    - develop
   pull_request:
 
+
 jobs:
-  test-backend: 
+  test-backend:
     runs-on: ubuntu-24.04
     steps:
-     #checkout your github code using actions/checkout@v4
-      - uses: actions/checkout@v4
+    #checkout your github code using actions/checkout@v4
+    - uses: actions/checkout@v4
 
-     #do the same with another action (actions/setup-java@v4) that enable to setup jdk 21
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
+    #do the same with another action (actions/setup-java@v4) that enable to setup jdk 21
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
 
-     #finally build your app with the latest command
-      - name: Build and test with Maven
-        run: mvn -f TP02/BackendAPI/pom.xml clean verify
-      
-      - name: SonarCloud
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Lem0n10_Lem0n10-Docker-CTP -Dsonar.organization=lem0n10 -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}  --file ./TP02/BackendAPI/pom.xml
+    #finally build your app with the latest command
+    - name: Build and test with Maven
+      run: mvn -f TP02/BackendAPI/pom.xml clean verify
+
+    - name: SonarCloud
+      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Lem0n10_Lem0n10-Docker-CTP -Dsonar.organization=lem0n10 -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}  --file ./TP02/BackendAPI/pom.xml
   # define job to build and publish docker image
   build-and-push-docker-image:
     needs: test-backend
@@ -35,42 +36,89 @@ jobs:
 
     # steps to perform in job
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Login to DockerHub
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+    - name: Login to DockerHub
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
+    - name: Build image and push backend
+      uses: docker/build-push-action@v6
+      with:
+        # relative path to the place where source code with Dockerfile is located
+        context: ./TP02/BackendAPI
+        # Note: tags has to be all lower-case
+        tags: ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-simple-api:latest
 
-      - name: Build image and push backend
-        uses: docker/build-push-action@v6
-        with:
-          # relative path to the place where source code with Dockerfile is located
-          context: ./TP02/BackendAPI
-          # Note: tags has to be all lower-case
-          tags:  ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-simple-api:latest
+        # build on feature branches, push only on main branch
+        push: ${{ github.ref == 'refs/heads/main' }}
 
-          # build on feature branches, push only on main branch
-          push: ${{ github.ref == 'refs/heads/main' }}
+    - name: Build image and push database
+      uses: docker/build-push-action@v6
+      with:
+        # relative path to the place where source code with Dockerfile is located
+        context: ./TP02/Database
+        # Note: tags has to be all lower-case
+        tags: ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-database:latest
 
-      - name: Build image and push database
-        uses: docker/build-push-action@v6
-        with:
-          # relative path to the place where source code with Dockerfile is located
-          context: ./TP02/Database
-          # Note: tags has to be all lower-case
-          tags:  ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-database:latest
+        # build on feature branches, push only on main branch
+        push: ${{ github.ref == 'refs/heads/main' }}
 
-          # build on feature branches, push only on main branch
-          push: ${{ github.ref == 'refs/heads/main' }}
+    - name: Build image and push httpd
+      uses: docker/build-push-action@v6
+      with:
+        # relative path to the place where source code with Dockerfile is located
+        context: ./TP02/HttpServer
+        # Note: tags has to be all lower-case
+        tags: ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-httpd:latest
 
-      - name: Build image and push httpd
-        uses: docker/build-push-action@v6
-        with:
-          # relative path to the place where source code with Dockerfile is located
-          context: ./TP02/HttpServer
-          # Note: tags has to be all lower-case
-          tags:  ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-httpd:latest
+        # build on feature branches, push only on main branch   
+        push: ${{ github.ref == 'refs/heads/main' }}
 
-          # build on feature branches, push only on main branch   
-          push: ${{ github.ref == 'refs/heads/main' }}
+  deploy-to-server:
+    needs: build-and-push-docker-image
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Deploy to remote server
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: 22
+        script: |
+          # Stop existing containers
+          docker stop backend database httpd || true
+          docker rm backend database httpd || true
+
+          # Run database
+          docker run -d \
+            --name database \
+            --network app-network \
+            -e POSTGRES_USER=usr \
+            -e POSTGRES_PASSWORD=pwd \
+            -e POSTGRES_DB=db \
+            -v /home/admin/CreateScheme.sql:/docker-entrypoint-initdb.d/01-CreateScheme.sql \
+            -v /home/admin/InsertData.sql:/docker-entrypoint-initdb.d/02-InsertData.sql \
+            -p 5432:5432 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
+
+          # Run backend
+          docker run -d \
+            --name backend \
+            --network app-network \
+            -e DATABASE_HOST=database \
+            -e DATABASE_PORT=5432 \
+            -e DATABASE_USER=usr \
+            -e DATABASE_PASSWORD=pwd \
+            -e DATABASE_NAME=db \
+            -p 8080:8080 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
+
+          # Run httpd
+          docker run -d \
+            --name httpd \
+            --network app-network \
+            -p 80:80 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
