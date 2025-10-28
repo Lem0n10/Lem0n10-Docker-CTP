@@ -5,8 +5,6 @@ on:
     branches:
     - main
     - develop
-  pull_request:
-
 
 jobs:
   test-backend:
@@ -29,6 +27,8 @@ jobs:
     - name: SonarCloud
       run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Lem0n10_Lem0n10-Docker-CTP -Dsonar.organization=lem0n10 -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}  --file ./TP02/BackendAPI/pom.xml
   # define job to build and publish docker image
+
+
   build-and-push-docker-image:
     needs: test-backend
     # run only when code is compiling and tests are passing
@@ -79,7 +79,9 @@ jobs:
     needs: build-and-push-docker-image
     runs-on: ubuntu-24.04
     if: github.ref == 'refs/heads/main'
+
     steps:
+
     - name: Deploy to remote server
       uses: appleboy/ssh-action@v0.1.6
       with:
@@ -96,8 +98,8 @@ jobs:
           docker run -d \
             --name database \
             --network app-network \
-            -e POSTGRES_USER=usr \
-            -e POSTGRES_PASSWORD=pwd \
+            -e POSTGRES_USER=${{ secrets.DB_USER }} \
+            -e POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }} \
             -e POSTGRES_DB=db \
             -v /home/admin/CreateScheme.sql:/docker-entrypoint-initdb.d/01-CreateScheme.sql \
             -v /home/admin/InsertData.sql:/docker-entrypoint-initdb.d/02-InsertData.sql \
@@ -110,8 +112,8 @@ jobs:
             --network app-network \
             -e DATABASE_HOST=database \
             -e DATABASE_PORT=5432 \
-            -e DATABASE_USER=usr \
-            -e DATABASE_PASSWORD=pwd \
+            -e DATABASE_USER=${{ secrets.DB_USER }} \
+            -e DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }} \
             -e DATABASE_NAME=db \
             -p 8080:8080 \
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
