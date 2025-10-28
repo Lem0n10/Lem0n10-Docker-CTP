@@ -1,0 +1,10 @@
+- name: Run HTTPD proxy
+  docker_container:
+    name: httpd
+    image: lem0hn/tp-devops-httpd
+    networks:
+      - name: app-network
+    ports:
+      - "80:80"
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python

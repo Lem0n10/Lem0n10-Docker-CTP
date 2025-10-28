@@ -1,0 +1,15 @@
+- name: Generate the .env file for application
+  ansible.builtin.copy:
+    src: var_env/app.env
+    dest: /tmp/app.env
+    mode: '0600'
+
+- name: Run application container
+  docker_container:
+    name: backend
+    image: lem0hn/tp-devops-simple-api
+    networks:
+      - name: app-network
+    env_file: /tmp/app.env
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python

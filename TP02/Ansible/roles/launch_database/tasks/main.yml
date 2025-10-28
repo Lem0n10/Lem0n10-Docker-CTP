@@ -1,0 +1,17 @@
+- name: Generate the .env file for database
+  ansible.builtin.copy:
+    src: var_env/db.env
+    dest: /tmp/db.env
+    mode: '0600'
+  
+- name: Run database container
+  docker_container:
+    name: database
+    image: lem0hn/tp-devops-database
+    networks:
+      - name: app-network
+    env_file: /tmp/db.env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python
