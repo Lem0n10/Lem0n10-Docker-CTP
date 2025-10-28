@@ -79,48 +79,21 @@ jobs:
     needs: build-and-push-docker-image
     runs-on: ubuntu-24.04
     if: github.ref == 'refs/heads/main'
-
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    - name: Deploy to remote server
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        port: 22
-        script: |
-          # Stop existing containers
-          docker stop backend database httpd || true
-          docker rm backend database httpd || true
+    - name: Install Ansible
+      run: sudo apt update && sudo apt install -y ansible
 
-          # Run database
-          docker run -d \
-            --name database \
-            --network app-network \
-            -e POSTGRES_USER=${{ secrets.DB_USER }} \
-            -e POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }} \
-            -e POSTGRES_DB=db \
-            -v /home/admin/CreateScheme.sql:/docker-entrypoint-initdb.d/01-CreateScheme.sql \
-            -v /home/admin/InsertData.sql:/docker-entrypoint-initdb.d/02-InsertData.sql \
-            -p 5432:5432 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
-
-          # Run backend
-          docker run -d \
-            --name backend \
-            --network app-network \
-            -e DATABASE_HOST=database \
-            -e DATABASE_PORT=5432 \
-            -e DATABASE_USER=${{ secrets.DB_USER }} \
-            -e DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }} \
-            -e DATABASE_NAME=db \
-            -p 8080:8080 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
-
-          # Run httpd
-          docker run -d \
-            --name httpd \
-            --network app-network \
-            -p 80:80 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
+    - name: Deploy with Ansible
+      env:
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      run: |
+        ansible-playbook -i ansible/inventories/setup.yml ansible/playbooks/deploy.yml \
+          -e "db_user=$DB_USER db_password=$DB_PASSWORD dockerhub_user=$DOCKERHUB_USERNAME" \
+          --private-key "${{ secrets.SERVER_SSH_KEY }}" \
+          -u ${{ secrets.SERVER_USER }} \
+          -e "ansible_host=${{ secrets.SERVER_HOST }}"
