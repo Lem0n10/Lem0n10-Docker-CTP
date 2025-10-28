@@ -92,7 +92,7 @@ jobs:
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       run: |
-        ansible-playbook -i TP02/Ansible/inventories/setup.yml TP02/Ansible/playbooks/deploy.yml \
+        ansible-playbook -i TP02/Ansible/inventories/setup.yml TP02/Ansible/playbooks/setup.yml \
           -e "db_user=$DB_USER db_password=$DB_PASSWORD dockerhub_user=$DOCKERHUB_USERNAME" \
           --private-key "${{ secrets.SERVER_SSH_KEY }}" \
           -u ${{ secrets.SERVER_USER }} \
