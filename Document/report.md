@@ -1,35 +1,64 @@
-# Database
+# DevOps TP Report
 
-# 1-1 For which reason is it better to run the container with a flag -e to give the environment variables rather than put them directly in the Dockerfile ?
+## Docker
 
-It's better to to the container with the -e flag just in case if someone has access to the Dockfile for security. If he can access this file, he can check all the image history and see the password plaintext.
+### 1-1 Why is it better to use the -e flag for environment variables rather than putting them directly in the Dockerfile?
 
-# 1-2 Why do we need a volume to be attached to our postgres container ? 
+Using the -e flag is better for security and flexibility. Dockerfiles are usually versioned in Git, so hardcoding passwords shows clearly sensitive data in the repository history.
 
-Our postgres container contains data and if stop the container, all the data will be erased so to keep the data, we use volumes to make sure that data is stored outside the container, on the host machine or Docker-managed storage.
+### 1-2 Why do we need a volume attached to our postgres container?
 
-# 1-3 Document your database container essentials: commands and Dockerfile.
+Docker containers are ephemeral and when we destroyed them, all internal data is lost. 
 
-# 1-4 Why do we need a multistage build? And explain each step of this dockerfile. 
+Without a volume, the database would reset every time when the container is recreated. Volumes mount host directories to the container's data directory, ensuring data persistence across container lifecycles.
 
-A multistage build can be usefull because it can help to write a readable Dockerfile but howerver the main purpose of this build is to simplified the file and to leave behind the JDK and Maven to just let the JRE in the final image.
+### 1-4 Why do we need a multistage build? Explain each step of this dockerfile.
 
-# 2-1 What are testcontainers ?
-Testcontainers is a library that provides an interface to run and write your integration test.
+Multistage builds can help to reduce image size and improve security by separating build tools from the runtime environment. The final image only contains the JRE and compiled application and not Maven or the full JDK.
 
-# 2-2 For what purpose do we need to use secured variables ?
+### 1-5 Why do we need a reverse proxy?
 
-They are usefull to protected sensible data such as password , Token etc...
+A reverse proxy provides a single entry point for all services, handles SSL/TLS termination in one place, enables load balancing across multiple backend instances, improves security by hiding implementation details and filtering requests, can serve static content(frontend), and simplifies port management by exposing only ports 80/443.
 
-# 2-3 Why did we put needs: build-and-test-backend on this job? Maybe try without this and you will see!
+### 1-6 Why is docker-compose so important?
+
+Docker-compose simplifies multi-container orchestration by defining all services in one YAML file and launching everything with a single command.
+
+### 1-10 Why do we put our images into an online repo?
+
+We put images on online repositories because it enable team collaboration by sharing standardized images, simplify deployment across different servers, provide version control and history which is essential for CI/CD pipelines by serving as centralized backups and ensuring consistency. 
+
+In addition, everyone can use exactly the same images even if the don't use the same machine.
 
 
+## GitHub Actions
+
+### 2-1 What are testcontainers?
+
+Testcontainers are Java libraries that launch Docker containers during test execution. They also provide real database instances ensuring realistic integration tests. 
+
+Containers are automatically created before tests and destroyed after, providing complete isolation and eliminating manual setup which makes tests more reliable and portable.
+
+### 2-2 For what purpose do we need to use secured variables?
+
+Secured variables protect sensitive credentials such as DockerHub tokens from exposure in source code. Since GitHub provides access control, only authorized workflows can use secrets and they're masked in logs.
+
+### 2-3 Why did we put needs: build-and-test-backend on this job?
+
+The needs directive creates a dependency between jobs ensuring tests pass before building and pushing images. 
+
+Without needs, jobs may run in parallel potentially pushing broken images to DockerHub before knowing if tests works or not. This follows the logical CI/CD flow prevents publishing broken images, and saves resources by avoiding unnecessary builds when tests fail.
+
+### 2-4 For what purpose do we need to push docker images?
+
+Pushing images:
+- Enables automated deployment to servers
+- Supports CD with tools like Ansible
+- Provides version history of deployable releases
+- Allows team-wide sharing of standardized images
+- Ensures reproducibility
 
 
+## Ansible
 
-
-
-
-# 2-1 What are testcontainers?
-
-Testcontainers is basically just a Java library that provide you simple interface to write and un run your integration test.
+### 3-1
